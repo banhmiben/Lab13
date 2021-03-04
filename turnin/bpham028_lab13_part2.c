@@ -18,9 +18,8 @@
 #define shiftC 0x01 //pattern
 #define shiftD 0x02 //row
 
-unsigned char pattern;
-unsigned char row = 0xFE;
-unsigned short tmp;
+unsigned char pattern1 = 0x00;
+unsigned char row1 = 0x00;
 
 void ADC_init() {
 	ADCSRA |= (1 << ADEN) | (1 << ADSC) | (1 << ADATE);
@@ -55,17 +54,21 @@ void transmit_data(unsigned char data, unsigned char shiftNum) {
 	PORTC = 0x00;
 }
 
-enum states {start, wait, left, right} state;
+enum states {start, init, wait, left, right} state;
 void Tick() {
 
+	row1 = 0xFE;
 	switch(state) {
 		case(start):
+			state = init;
+			break;
+		case(init):
 			state = wait;
 			break;
 		case(wait):
-			if (tmp < 542 - 100) {
+			if (ADC < 542 - 100) {
 				state = left;
-			} else if (tmp > 542 + 100) {
+			} else if (ADC > 542 + 100) {
 				state = right;
 			} else {
 				state = wait;
@@ -82,46 +85,47 @@ void Tick() {
 	}
 	switch(state) {
 		case(start):
-			pattern = 0x80;
+			break;
+		case(init):
+			pattern1 = 0x80;
 			break;
 		case(wait):
-			PORTB = 0x01;
-			transmit_data(pattern, shiftC);
-			transmit_data(row, shiftD);
+			PORTB = pattern1;
+			PORTC = pattern1;
+			PORTD = row1;
 			break;
 		case(left):
 			PORTB = 0x02;
-			if (pattern == 0x08) {
-				pattern = 0x01;
+			if (pattern1 == 0x80) {
+				pattern1 = 0x01;
 			} else {
-				pattern = pattern << 1;
+				pattern1 = pattern1 << 1;
 			} break;
 		case(right):
 			PORTB = 0x04;
-			if (pattern == 0x01) {
-				pattern = 0x80;
+			if (pattern1 == 0x01) {
+				pattern1 = 0x80;
 			} else {
-				pattern = pattern >> 1;
+				pattern1 = pattern1 >> 1;
 			} break;
 		default:
-			pattern = 0x80;
 			break;
 	}
-	transmit_data(pattern, shiftC);
-	transmit_data(0xFE, shiftD);
+	PORTC = pattern1;
+	PORTD = row1;
 }
 
 
 int main(void) {
-	DDRA = 0x00; PORTA = 0xFF;
+//	DDRA = 0x00; PORTA = 0xFF;
 	DDRB = 0xFF; PORTB = 0x00;
 	DDRC = 0xFF; PORTC = 0x00;
 	DDRD = 0xFF; PORTD = 0x00;
-	TimerSet(1);
+	TimerSet(100);
 	TimerOn();
 	ADC_init();
+	state = start;
 	while(1) {
-		tmp = ADC;
 		Tick();
 		while(!TimerFlag){}
 		TimerFlag = 0;
