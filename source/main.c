@@ -18,9 +18,8 @@
 #define shiftC 0x01 //pattern
 #define shiftD 0x02 //row
 
-unsigned char pattern;
-unsigned char row = 0xFE;
-unsigned short tmp;
+//unsigned char pattern = 0x00;
+//unsigned char row = 0x00;
 
 void ADC_init() {
 	ADCSRA |= (1 << ADEN) | (1 << ADSC) | (1 << ADATE);
@@ -58,14 +57,17 @@ void transmit_data(unsigned char data, unsigned char shiftNum) {
 enum states {start, wait, left, right} state;
 void Tick() {
 
+	static unsigned char pattern;
+	static unsigned char row = 0xFE;
+
 	switch(state) {
 		case(start):
 			state = wait;
 			break;
 		case(wait):
-			if (tmp < 542 - 100) {
+			if (ADC < 542 - 100) {
 				state = left;
-			} else if (tmp > 542 + 100) {
+			} else if (ADC > 542 + 100) {
 				state = right;
 			} else {
 				state = wait;
@@ -86,12 +88,10 @@ void Tick() {
 			break;
 		case(wait):
 			PORTB = 0x01;
-			transmit_data(pattern, shiftC);
-			transmit_data(row, shiftD);
 			break;
 		case(left):
 			PORTB = 0x02;
-			if (pattern == 0x08) {
+			if (pattern == 0x80) {
 				pattern = 0x01;
 			} else {
 				pattern = pattern << 1;
@@ -104,11 +104,10 @@ void Tick() {
 				pattern = pattern >> 1;
 			} break;
 		default:
-			pattern = 0x80;
 			break;
 	}
-	transmit_data(pattern, shiftC);
-	transmit_data(0xFE, shiftD);
+	PORTC = pattern;
+	PORTD = row;
 }
 
 
@@ -117,11 +116,10 @@ int main(void) {
 	DDRB = 0xFF; PORTB = 0x00;
 	DDRC = 0xFF; PORTC = 0x00;
 	DDRD = 0xFF; PORTD = 0x00;
-	TimerSet(1);
+	TimerSet(10);
 	TimerOn();
 	ADC_init();
 	while(1) {
-		tmp = ADC;
 		Tick();
 		while(!TimerFlag){}
 		TimerFlag = 0;
