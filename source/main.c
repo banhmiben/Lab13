@@ -90,19 +90,16 @@ void Tick() {
 			pattern1 = 0x80;
 			break;
 		case(wait):
-			PORTB = pattern1;
-			PORTC = pattern1;
-			PORTD = row1;
+			//PORTC = pattern1;
+			//PORTD = row1;
 			break;
 		case(left):
-			PORTB = 0x02;
 			if (pattern1 == 0x80) {
 				pattern1 = 0x01;
 			} else {
 				pattern1 = pattern1 << 1;
 			} break;
 		case(right):
-			PORTB = 0x04;
 			if (pattern1 == 0x01) {
 				pattern1 = 0x80;
 			} else {
@@ -121,7 +118,7 @@ int main(void) {
 	DDRB = 0xFF; PORTB = 0x00;
 	DDRC = 0xFF; PORTC = 0x00;
 	DDRD = 0xFF; PORTD = 0x00;
-	TimerSet(10);
+	TimerSet(100);
 	TimerOn();
 	ADC_init();
 	state = start;
