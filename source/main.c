@@ -58,7 +58,6 @@ void transmit_data(unsigned char data, unsigned char shiftNum) {
 enum states {start, wait, left, right} state;
 void Tick() {
 
-	tmp = ADC;	
 	switch(state) {
 		case(start):
 			state = wait;
@@ -86,14 +85,19 @@ void Tick() {
 			pattern = 0x80;
 			break;
 		case(wait):
+			PORTB = 0x01;
+			transmit_data(pattern, shiftC);
+			transmit_data(row, shiftD);
 			break;
 		case(left):
+			PORTB = 0x02;
 			if (pattern == 0x08) {
 				pattern = 0x01;
 			} else {
 				pattern = pattern << 1;
 			} break;
 		case(right):
+			PORTB = 0x04;
 			if (pattern == 0x01) {
 				pattern = 0x80;
 			} else {
@@ -110,12 +114,14 @@ void Tick() {
 
 int main(void) {
 	DDRA = 0x00; PORTA = 0xFF;
+	DDRB = 0xFF; PORTB = 0x00;
 	DDRC = 0xFF; PORTC = 0x00;
 	DDRD = 0xFF; PORTD = 0x00;
 	TimerSet(1);
 	TimerOn();
 	ADC_init();
 	while(1) {
+		tmp = ADC;
 		Tick();
 		while(!TimerFlag){}
 		TimerFlag = 0;
